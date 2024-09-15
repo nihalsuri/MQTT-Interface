@@ -14,7 +14,7 @@ class MQTTInterface(QWidget):
         # Create a vertical layout as requested in the task
         layout = QVBoxLayout()
 
-        # Create a QTextEdit (all published messages on the broker would be displayed here)
+        # Create a QTextEdit (all received messages would be displayed here)
         self.text_box = QTextEdit(self)
         self.text_box.setReadOnly(True)  # Make the box read-only
 
@@ -56,16 +56,18 @@ class MQTTInterface(QWidget):
         """Display the given message in the text box."""
         self.text_box.setText(message)
 
-# Implementation with QTDesigner
+
 class MQTTInterfaceDesigner(QMainWindow):
-    """Initialize the UI layout and widgets."""
-    def __init__(self): 
+    """Initialize the UI layout from QT Designer."""
+    
+    def __init__(self):
         super().__init__()
-        uic.loadUi("ui//standard_interface.ui", self)
+        uic.loadUi("ui/standard_interface.ui", self)
         self.show()
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    # To consume UI from QTDesigner, change class name to MQTTInterfaceDesigner  
-    ex = MQTTInterface() 
+    # To consume UI from QTDesigner, change class name to MQTTInterfaceDesigner
+    ex = MQTTInterface()
     sys.exit(app.exec_())
