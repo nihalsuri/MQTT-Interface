@@ -1,13 +1,27 @@
-import sys
+import csv
 import json
+import sys
 from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit, QPushButton, QMainWindow
+
+from mqtt.publisher import MQTTPublisher
+from mqtt.subscriber import MQTTSubscriber
 
 
 class MQTTInterface(QWidget):
     def __init__(self):
         super().__init__()
         self.init_ui()
+
+        # Initialize publisher
+        self.publisher = MQTTPublisher()
+
+        # Initialize subscriber
+        self.subscriber = MQTTSubscriber(on_message_callback=self.display_message)
+        self.subscriber.start()  # Start the subscriber loop
+
+        self.csv_data = self.load_csv_data("Simulated_sensor_data.csv")
+        self.current_record = 0
 
     def init_ui(self):
         """Initialize the UI layout and widgets."""
@@ -36,30 +50,43 @@ class MQTTInterface(QWidget):
         self.setGeometry(100, 100, 800, 500)
         self.show()
 
+    def load_csv_data(self, file_path):
+        """Load data from the CSV file."""
+        csv_data = []
+        try:
+            with open(file_path, mode='r') as file:
+                reader = csv.DictReader(file)
+                for row in reader:
+                    csv_data.append(row)  # Append each row as a dictionary
+            return csv_data
+        except FileNotFoundError:
+            self.text_box.append("Error: CSV file not found!")
+            return []
+
     def on_publish_click(self):
-        """Handle button click and display formatted JSON."""
-        message = {
-            "Time": "04/01/2023 00:00:00",
-            "Temperature": 18,
-            "Humidity": 10,
-            "Sound_Level": 20,
-            "Light_Level": 200
-        }
+        """Handle button click and publish the next CSV record."""
+        if self.current_record < len(self.csv_data):
+            message = self.csv_data[self.current_record]
 
-        # Convert the dictionary to a formatted JSON string
-        formatted_json = json.dumps(message, indent=4)
+            # Publish the JSON message
+            self.publisher.publish_message(message)
 
-        # Display published MQTT message in the text box
-        self.display_message(formatted_json)
+            # Move to the next record
+            self.current_record += 1
+        else:
+            self.text_box.append("All records have been published.")
 
     def display_message(self, message):
         """Display the given message in the text box."""
-        self.text_box.setText(message)
+        formatted_message = json.dumps(message, indent=4)
+        self.text_box.append(formatted_message)
+        # So that text box scrolls to the latest message
+        self.text_box.ensureCursorVisible() 
 
 
 class MQTTInterfaceDesigner(QMainWindow):
     """Initialize the UI layout from QT Designer."""
-    
+
     def __init__(self):
         super().__init__()
         uic.loadUi("ui/standard_interface.ui", self)
@@ -71,3 +98,4 @@ if __name__ == '__main__':
     # To consume UI from QTDesigner, change class name to MQTTInterfaceDesigner
     ex = MQTTInterface()
     sys.exit(app.exec_())
+
